@@ -32,7 +32,7 @@ class TestExportAPIData(unittest.TestCase):
         ExportAPIData.to_csv(df_mock)
 
         mock_exists.assert_called_once()
-        mock_open.assert_called_with(ExportAPIData.config_file, 'r')
+        mock_open.assert_called_with(ExportAPIData._CONFIG_FILE, 'r')
         mock_load.assert_called_once()
         mock_to_csv.assert_called_once()
 
@@ -47,20 +47,20 @@ class TestExportAPIData(unittest.TestCase):
     @patch('json.dump')
     @patch('builtins.open', new_callable=unittest.mock.mock_open)
     def test_save_csv_cont(self, mock_open, mock_dump):
-        ExportAPIData.csv_cont = 42
-        ExportAPIData.save_csv_cont()
+        ExportAPIData._CSV_CONT = 42
+        ExportAPIData._save_csv_cont()
 
-        mock_open.assert_called_with(ExportAPIData.config_file, 'w')
+        mock_open.assert_called_with(ExportAPIData._CONFIG_FILE, 'w')
         mock_dump.assert_called_once_with({'csv_cont': 42}, mock_open())
 
     @patch('json.load')
     @patch('builtins.open', new_callable=unittest.mock.mock_open)
     def test_load_csv_cont(self, mock_open, mock_load):
         mock_load.return_value = {'csv_cont': 42}
-        ExportAPIData.load_csv_cont()
+        ExportAPIData._load_csv_cont()
 
-        mock_open.assert_called_with(ExportAPIData.config_file, 'r')
-        self.assertEqual(ExportAPIData.csv_cont, 42)
+        mock_open.assert_called_with(ExportAPIData._CONFIG_FILE, 'r')
+        self.assertEqual(ExportAPIData._CSV_CONT, 42)
 
 if __name__ == "__main__":
     unittest.main()

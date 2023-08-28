@@ -1,8 +1,10 @@
 import pandas as pd 
 import json
+from algorithms.queue import ArrayQueue
 
 class RequesterSerializer(object):
-    
+    _QUEUE = ArrayQueue()
+ 
     @classmethod
     def json_to_df_csv(cls, json):
         df = cls.normalize_to_df(json)
@@ -14,6 +16,9 @@ class RequesterSerializer(object):
         df = cls.normalize_to_df(json, True)
         df['city'] = df['city'].apply(lambda x: x['name'])
         df = df[['dt', 'cod', 'city','main.temp']].rename(columns={'main.temp': 'temp', 'city':'city'})
+        if not cls._QUEUE.is_full():
+            cls._QUEUE.enqueue(df)
+            return None
         return df
         """
         # OPCIÓN 2: TRANSFORMAR DF PARA EXPORTAR CON SQLALCHEMY
@@ -26,9 +31,7 @@ class RequesterSerializer(object):
             temperature = int(df_main.iloc[i])
             list_of_days.append({'city':city,'dt':dt, 'cod':cod, 'temperature':temperature})
         return df_nested
-        """
-            
-            
+        """         
 
     @classmethod
     def normalize_to_df(cls, json, five_days=None):
@@ -39,7 +42,6 @@ class RequesterSerializer(object):
         return df
         
     
-    
     @classmethod
     def elem_list_to_a_dicc(cls, element, api_key):
         dicc = {}
@@ -49,6 +51,10 @@ class RequesterSerializer(object):
             dicc[key] = value
         dicc['appid'] = api_key
         return dicc
+    
+    @classmethod
+    def set_queue_lenght(cls, lenght):
+        cls._QUEUE.queue = lenght
     
  
     
