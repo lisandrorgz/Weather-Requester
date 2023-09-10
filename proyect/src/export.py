@@ -1,25 +1,23 @@
 import os
 import json
 import datetime
-from serializer import RequesterSerializer
-from db import *
-from algorithms.queue import ArrayQueue
+from .db import *
+from .queue import ArrayQueueM
+import pandas as pd 
 
 
 class ExportAPIData(object):
 
-    _CSV_CONT = 0
-    _CONFIG_FILE = 'config.json'
-    _CSV_DIR = 'data_analytics/openweather/tiempodiario'
     _DATABASE = PostgresDB()
-        
-    @classmethod
-    def to_postgres(self, df):
+    _QUEUE = ArrayQueueM()
+     
+    def to_postgres(self):
         # OPCION 1: Exportar con pandas
         table_name = WeatherTables.__tablename__
         engine = self._DATABASE.get_engine()
         with engine.connect() as connection:
-            df.to_sql(table_name, con=connection, if_exists='append', index=False)
+            master_df = self._dequeue_pandas()
+            master_df.to_sql(table_name, con=connection, if_exists='append', index=False)
      
         """
 
@@ -39,49 +37,30 @@ class ExportAPIData(object):
         session.close()
         """
 
-    @classmethod
-    def to_csv(cls, df, five_days=None):
-        try:
-            if not os.path.exists(cls.csv_dir):
-                os.makedirs(cls.csv_dir)
+    def to_csv(self):
+        prox_df = self._QUEUE.array
+        dircc = prox_df.completed_dir
+        print(dircc)
+        master_df_csv = self._dequeue_pandas()  
+        master_df_csv.to_csv(dircc, index=False)
+    
+    def _dequeue_pandas(self):
+        df = None
+        while not self._QUEUE.is_empty():
+            parcial_df = self._QUEUE.dequeue()
+            df = parcial_df if df is None else pd.concat([df, parcial_df])
+        return df
 
-            # Cargar el valor actual de csv_cont desde el archivo de configuración
-            cls._load_csv_cont()
-            cls._CSV_CONT += 1
-            # Obtiene la fecha del dataframe y le agrega un identificador único csv_cont teniendo en cuenta el endpoint
-            date_name = cls.get_date(
-                df) + str(cls._CSV_CONT) + '.csv'
-            completed_dir = os.path.join(cls.csv_dir, date_name)
-            df.to_csv(completed_dir, index=False)
-            # Guardar el nuevo valor de csv_cont en el archivo de configuración
-            cls._save_csv_cont()
-        except Exception as e:
-            cls._CSV_CONT -= 1
-            raise f'Ocurrió un error {e}'
     
     # Funcion que transforma a el formato 'yyy/mm/dd según la fecha por segundos del campo 'dt' del df
-    @classmethod
-    def get_date(cls, df):
-        timestamp =  df['dt'].iloc[0]
-        date = str(datetime.datetime.fromtimestamp(timestamp)).split(' ')[0]
-        only_str = ''.join(date).replace('-', '')
-        return only_str
+    
+    
 
-    @classmethod
-    def _load_csv_cont(cls):
-        if os.path.exists(cls._CONFIG_FILE):
-            with open(cls._CONFIG_FILE, 'r') as config_file:
-                config = json.load(config_file)
-                cls._CSV_CONT = config.get('csv_cont', 0)
 
-    @classmethod
-    def _save_csv_cont(cls):
-        config = {'csv_cont': cls._CSV_CONT}
-        with open(cls._CONFIG_FILE, 'w') as config_file:
-            json.dump(config, config_file)
+   
+    
+   
 
-    @classmethod
-    def _reset_cont(cls, cont_name):
-        if cont_name == 'csv_cont':
-            cls._CSV_CONT = 0
-            cls._save_csv_cont()
+
+  
+

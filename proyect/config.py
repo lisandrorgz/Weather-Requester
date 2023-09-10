@@ -1,6 +1,7 @@
-from api_consumer import ApiRequester
-from params import *
+from src.api_consumer import ApiRequester
+from src.params import *
 
 if __name__ == '__main__':
-    requester = ApiRequester(all_parameters) 
-    requester.make_requests(five_days=True)
+    requester = ApiRequester(all_parameters)
+    requester.set_requester_api_key() 
+    requester.make_requests()
